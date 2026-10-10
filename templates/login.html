@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBSIDIAN® | LOGIN</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        .auth-bg { position: fixed; inset: 0; z-index: 0; }
+        .auth-bg-slide {
+            position: absolute; inset: 0;
+            background-size: cover; background-position: center;
+            opacity: 0; transform: scale(1);
+            transition: opacity 1.8s ease-in-out, transform 0s linear 1.8s;
+        }
+        .auth-bg-slide.active {
+            opacity: 1; transform: scale(1.1); z-index: 1;
+            transition: opacity 1.8s ease-in-out, transform 8s linear;
+        }
+        .auth-overlay {
+            position: fixed; inset: 0;
+            background: rgba(5, 5, 5, 0.72);
+            backdrop-filter: blur(2px); z-index: 2;
+        }
+        .auth-wrapper {
+            position: fixed; inset: 0; z-index: 3;
+            display: flex; justify-content: center; align-items: center; padding: 20px;
+        }
+        .auth-card {
+            width: 100%; max-width: 420px;
+            background: rgba(11, 11, 11, 0.90);
+            border: 1px solid var(--neon);
+            padding: 40px 36px 36px;
+            box-shadow: 0 0 60px rgba(204,255,0,0.10), 0 20px 60px rgba(0,0,0,0.8);
+            backdrop-filter: blur(16px);
+            border-radius: 4px;
+            animation: authCardIn 0.5s ease-out;
+        }
+        @keyframes authCardIn {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .auth-eyebrow {
+            display: block; font-size: 0.62rem; color: var(--neon);
+            letter-spacing: 3px; font-weight: 700; margin-bottom: 6px;
+        }
+        .auth-title {
+            font-family: 'Bebas', sans-serif; font-size: 2.8rem;
+            color: var(--text-light); letter-spacing: 1px; line-height: 1; margin-bottom: 28px;
+        }
+        .auth-title span { color: var(--neon); }
+        .auth-divider {
+            height: 1px; margin-bottom: 28px;
+            background: linear-gradient(to right, var(--neon), transparent);
+        }
+        .slide-dots {
+            position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+            z-index: 4; display: flex; gap: 8px;
+        }
+        .slide-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: rgba(204,255,0,0.3); transition: background 0.3s, transform 0.3s; cursor: pointer;
+        }
+        .slide-dot.active { background: var(--neon); transform: scale(1.4); box-shadow: 0 0 8px var(--neon); }
+        .auth-brand-corner {
+            position: fixed; top: 28px; left: 36px; z-index: 4;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .auth-brand-corner img {
+            width: 38px; height: 38px; object-fit: cover; border-radius: 6px;
+            border: 1.5px solid var(--neon); box-shadow: 0 0 12px rgba(204,255,0,0.25);
+        }
+        .auth-brand-name { font-family: 'Oswald', sans-serif; font-size: 1.15rem; color: #fff; letter-spacing: 1.5px; }
+        .auth-brand-sub { font-size: 0.55rem; color: var(--neon); letter-spacing: 2.5px; font-weight: 700; display: block; margin-top: 2px; }
+    </style>
+</head>
+<body>
+    <!-- 3D CUBE LOADING OVERLAY -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner">
+          <div></div><div></div><div></div><div></div><div></div><div></div>
+        </div>
+    </div>
+
+    <!-- Background Slideshow -->
+    <div class="auth-bg">
+        <div class="auth-bg-slide active" style="background-image: url('{{ url_for('static', filename='log1.jpg') }}')"></div>
+        <div class="auth-bg-slide" style="background-image: url('{{ url_for('static', filename='log2.jpg') }}')"></div>
+        <div class="auth-bg-slide" style="background-image: url('{{ url_for('static', filename='log3.jpg') }}')"></div>
+        <div class="auth-bg-slide" style="background-image: url('{{ url_for('static', filename='log4.jpg') }}')"></div>
+    </div>
+    <div class="auth-overlay"></div>
+
+    <!-- Brand watermark -->
+    <div class="auth-brand-corner">
+        <img src="{{ url_for('static', filename='app logo design.jpg') }}" alt="OBSIDIAN Logo">
+        <div>
+            <span class="auth-brand-name">OBSIDIAN®</span>
+            <span class="auth-brand-sub">PERFORMANCE LABS</span>
+        </div>
+    </div>
+
+    <!-- Login Form -->
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <span class="auth-eyebrow">OBSIDIAN® PERFORMANCE LABS</span>
+            <h2 class="auth-title">SYSTEM <span>ACCESS</span></h2>
+            <div class="auth-divider"></div>
+
+            {% if error %}
+            <div class="dash-error-box" style="margin-bottom: 22px;">{{ error }}</div>
+            {% endif %}
+
+            <form method="POST" id="auth-form">
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" name="username" placeholder="E.G. COACH_DAN" required autocomplete="username" maxlength="50">
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn-neon">AUTHORIZE ↗</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 22px;">
+                <p style="font-size: 0.75rem; color: var(--text-muted); text-transform: none;">
+                    NEW FACILITY ADMIN? <a href="{{ url_for('register') }}" style="color: var(--neon); text-decoration: none; font-weight: bold;">REGISTER HERE ↗</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide dots -->
+    <div class="slide-dots">
+        <div class="slide-dot active" data-index="0"></div>
+        <div class="slide-dot" data-index="1"></div>
+        <div class="slide-dot" data-index="2"></div>
+        <div class="slide-dot" data-index="3"></div>
+    </div>
+
+    <script>
+        const slides = document.querySelectorAll('.auth-bg-slide');
+        const dots   = document.querySelectorAll('.slide-dot');
+        let current  = 0;
+        function goToSlide(index) {
+            slides[current].classList.remove('active');
+            dots[current].classList.remove('active');
+            current = (index + slides.length) % slides.length;
+            slides[current].classList.add('active');
+            dots[current].classList.add('active');
+        }
+        setInterval(() => goToSlide(current + 1), 5000);
+        dots.forEach(dot => dot.addEventListener('click', () => goToSlide(parseInt(dot.dataset.index))));
+
+        const authForm = document.getElementById('auth-form');
+        const loader   = document.getElementById('loading-overlay');
+        authForm.addEventListener('submit', function() { loader.classList.add('active'); });
+
+        document.querySelectorAll('.btn-neon').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const ripple = document.createElement('span');
+                ripple.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+                ripple.classList.add('ripple');
+                this.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 600);
+            });
+        });
+    </script>
+</body>
+</html>

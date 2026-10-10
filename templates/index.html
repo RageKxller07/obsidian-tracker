@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBSIDIAN® | PERFORMANCE TRACKER</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    
+    <!-- 3D CUBE LOADING OVERLAY -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner">
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+    </div>
+
+    <!-- Audio Element for Background Music -->
+    <audio id="bg-audio" preload="auto"></audio>
+
+    <!-- Top Navigation -->
+    <nav class="navbar">
+        <div class="brand-group">
+            <img src="{{ url_for('static', filename='app logo design.jpg') }}" alt="OBSIDIAN Logo" class="brand-logo-img">
+            <div class="brand-text">
+                <span class="logo">OBSIDIAN®</span>
+                <span class="brand-sub">PERFORMANCE LABS</span>
+            </div>
+        </div>
+
+        <div class="nav-right">
+            <!-- Background Music Player Controller -->
+            <div class="audio-control-bar" id="audio-player-container">
+                <button type="button" id="audio-toggle-btn" class="music-btn" title="Toggle Background Audio">
+                    <span class="music-icon" id="music-icon">▶</span>
+                    <div class="sound-bars" id="sound-bars">
+                        <span class="s-bar"></span>
+                        <span class="s-bar"></span>
+                        <span class="s-bar"></span>
+                        <span class="s-bar"></span>
+                    </div>
+                    <span class="music-label" id="music-label">MUSIC: OFF</span>
+                </button>
+                <button type="button" id="audio-next-btn" class="music-skip-btn" title="Skip to next track">⏭</button>
+                <span class="track-indicator" id="track-indicator" title="Current track">SONG</span>
+            </div>
+
+            <div class="nav-links">
+                <a href="/">DASHBOARD</a>
+                
+                <!-- Profile Avatar & Dropdown Menu -->
+                <div class="profile-dropdown" id="profile-dropdown">
+                    <button type="button" class="profile-trigger" id="profile-trigger" title="Account Menu">
+                        <img src="{{ url_for('static', filename='icon.jpg') }}" alt="Profile Avatar" class="profile-avatar">
+                    </button>
+                    <div class="profile-menu">
+                        <div class="profile-header-info">
+                            <span class="profile-username">{{ current_user.username | upper }}</span>
+                            <span class="profile-role">FACILITY ADMIN</span>
+                        </div>
+                        <div class="profile-divider"></div>
+                        <a href="#" class="modal-trigger" data-modal="docs">SYSTEM DOCS</a>
+                        <a href="#" class="modal-trigger" data-modal="privacy">PRIVACY POLICY</a>
+                        <div class="profile-divider"></div>
+                        <a href="{{ url_for('logout') }}" class="profile-logout">LOGOUT ↗</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section with Crossfade Slideshow -->
+    <header class="hero">
+        <div class="hero-text">
+            <h1>EMBRACE<br>THE PRESSURE.</h1>
+            <p>Detailed analysis for the one who operates in dark.</p>
+        </div>
+        <div class="hero-image">
+            <img src="{{ url_for('static', filename='img1.jpg') }}" class="slideshow-img active" alt="Slide 1">
+            <img src="{{ url_for('static', filename='img2.jpg') }}" class="slideshow-img" alt="Slide 2">
+            <img src="{{ url_for('static', filename='img3.jpg') }}" class="slideshow-img" alt="Slide 3">
+            <img src="{{ url_for('static', filename='img4.jpg') }}" class="slideshow-img" alt="Slide 4">
+            <img src="{{ url_for('static', filename='img5.jpg') }}" class="slideshow-img" alt="Slide 5">
+            <img src="{{ url_for('static', filename='img6.jpg') }}" class="slideshow-img" alt="Slide 6">
+            <img src="{{ url_for('static', filename='img7.jpg') }}" class="slideshow-img" alt="Slide 7">
+            <img src="{{ url_for('static', filename='img8.jpg') }}" class="slideshow-img" alt="Slide 8">
+        </div>
+    </header>
+
+    <!-- Main Workspace Container (Gets Hot-Swapped by AJAX) -->
+    <div class="container">
+        
+        <!-- LOG SESSION CARD -->
+        <div class="card">
+            <h2 class="section-title">LOG SESSION</h2>
+            <form action="/log" method="POST" id="log-form" novalidate>
+                
+                <!-- Athlete Name -->
+                <div class="form-group">
+                    <label>Athlete Name:</label>
+                    <input type="text" name="name" class="{{ 'input-error' if errors.get('name') else '' }}" value="{{ form_data.get('name', '') }}" placeholder="E.G. ALEX R." required>
+                    {% if errors.get('name') %}
+                        <span class="error-msg">{{ errors.get('name') }}</span>
+                    {% endif %}
+                </div>
+                
+                <!-- Custom Activity Dropdown -->
+                <div class="form-group">
+                    <label>Activity Type:</label>
+                    <div class="custom-dropdown" id="log-activity-dropdown">
+                        <button type="button" class="dropdown-trigger">
+                            <span class="selected-text">{{ form_data.get('activity', 'Sprint') }}</span>
+                            <span class="arrow">▼</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li data-value="Sprint">Sprint</li>
+                            <li data-value="Endurance">Endurance</li>
+                            <li data-value="Strength">Strength</li>
+                        </ul>
+                    </div>
+                    <input type="hidden" name="activity" id="activity" value="{{ form_data.get('activity', 'Sprint') }}">
+                </div>
+
+                <!-- Universal Inputs -->
+                <div class="form-group">
+                    <label>Avg Heart Rate (BPM):</label>
+                    <input type="number" name="hr" class="{{ 'input-error' if errors.get('hr') else '' }}" value="{{ form_data.get('hr', '') }}" placeholder="E.G. 165" step="1" required>
+                    {% if errors.get('hr') %}
+                        <span class="error-msg">{{ errors.get('hr') }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>RPE Score (1-10):</label>
+                    <input type="number" name="rpe" class="{{ 'input-error' if errors.get('rpe') else '' }}" value="{{ form_data.get('rpe', '') }}" placeholder="E.G. 8.5" step="0.1" required>
+                    {% if errors.get('rpe') %}
+                        <span class="error-msg">{{ errors.get('rpe') }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Dynamic Input Blocks -->
+                <div id="sprint-fields" class="dynamic-field">
+                    <div class="form-group">
+                        <label>Top Speed (km/h):</label>
+                        <input type="number" name="speed" class="{{ 'input-error' if errors.get('speed') else '' }}" value="{{ form_data.get('speed', '') }}" placeholder="E.G. 29.5" step="0.1">
+                        {% if errors.get('speed') %}
+                            <span class="error-msg">{{ errors.get('speed') }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label>Duration (min):</label>
+                        <input type="number" name="duration" class="{{ 'input-error' if errors.get('duration') else '' }}" value="{{ form_data.get('duration', '') }}" placeholder="E.G. 45" step="0.1">
+                        {% if errors.get('duration') %}
+                            <span class="error-msg">{{ errors.get('duration') }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div id="endurance-fields" class="dynamic-field" style="display: none;">
+                    <div class="form-group">
+                        <label>Distance (km):</label>
+                        <input type="number" name="distance" class="{{ 'input-error' if errors.get('distance') else '' }}" value="{{ form_data.get('distance', '') }}" placeholder="E.G. 12.5" step="0.1">
+                        {% if errors.get('distance') %}
+                            <span class="error-msg">{{ errors.get('distance') }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label>Duration (min):</label>
+                        <input type="number" name="duration_endurance" class="{{ 'input-error' if errors.get('duration') else '' }}" value="{{ form_data.get('duration_endurance', form_data.get('duration', '')) }}" placeholder="E.G. 60" step="0.1">
+                        {% if errors.get('duration') %}
+                            <span class="error-msg">{{ errors.get('duration') }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div id="strength-fields" class="dynamic-field" style="display: none;">
+                    <div class="form-group">
+                        <label>Exercise Name:</label>
+                        <input type="text" name="exercise" class="{{ 'input-error' if errors.get('exercise') else '' }}" value="{{ form_data.get('exercise', '') }}" placeholder="E.G. SQUAT">
+                        {% if errors.get('exercise') %}
+                            <span class="error-msg">{{ errors.get('exercise') }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label>Weight (kg):</label>
+                        <input type="number" name="weight" class="{{ 'input-error' if errors.get('weight') else '' }}" value="{{ form_data.get('weight', '') }}" placeholder="E.G. 120" step="0.5">
+                        {% if errors.get('weight') %}
+                            <span class="error-msg">{{ errors.get('weight') }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label>Sets:</label>
+                        <input type="number" name="sets" class="{{ 'input-error' if errors.get('sets') else '' }}" value="{{ form_data.get('sets', '') }}" placeholder="E.G. 4" step="1">
+                        {% if errors.get('sets') %}
+                            <span class="error-msg">{{ errors.get('sets') }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label>Average Reps:</label>
+                        <input type="number" name="reps" class="{{ 'input-error' if errors.get('reps') else '' }}" value="{{ form_data.get('reps', '') }}" placeholder="E.G. 8" step="1">
+                        {% if errors.get('reps') %}
+                            <span class="error-msg">{{ errors.get('reps') }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-neon">SAVE WORKOUT ↗</button>
+            </form>
+        </div>
+
+        <!-- ANALYTICS DASHBOARD CARD -->
+        <div class="card analytics-card">
+            <div class="analytics-header">
+                <div>
+                    <span class="report-eyebrow">OBSIDIAN</span>
+                    <h2 class="section-title">ANALYTICS</h2>
+                </div>
+                {% if telemetry and telemetry.total_sessions %}
+                <div class="telemetry-badge">
+                    <span class="status-dot"></span> {{ telemetry.total_sessions }} LOGS RECORDED
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if summary %}
+            <div class="session-report">
+                <div class="report-header">
+                    <div>
+                        <span class="report-eyebrow">OBSIDIAN / PERFORMANCE LOG</span>
+                        <h3>SESSION REPORT<span class="report-dot">.</span></h3>
+                        <p class="report-subtitle">Training session successfully recorded</p>
+                    </div>
+                    <span class="report-status">● LOGGED</span>
+                </div>
+                <div class="report-divider"></div>
+                <div class="report-content">
+                    <pre>{{ summary }}</pre>
+                </div>
+                <div class="report-footer">
+                    <span>PERFORMANCE LABS</span>
+                    <span>SESSION DATA / 01</span>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if dash_error %}
+            <div class="dash-error-box">{{ dash_error }}</div>
+            {% endif %}
+
+            <!-- Roster Quick Select Chips -->
+            {% if telemetry and telemetry.athletes %}
+            <div class="roster-chips-container">
+                <span class="roster-label">QUICK ROSTER:</span>
+                <div class="roster-chips">
+                    {% for ath in telemetry.athletes %}
+                    <button type="button" class="athlete-chip {% if (dash_name|lower) == (ath|lower) %}active{% endif %}" data-name="{{ ath }}">
+                        <span class="chip-dot"></span> {{ ath }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <form action="/dashboard" method="POST" class="dash-form" id="dash-form">
+                <div class="dash-input-wrapper">
+                    <input type="text" name="dash_name" id="dash_name_input" placeholder="ATHLETE NAME" value="{{ dash_name or request.form.get('dash_name', '') }}" required autocomplete="off">
+                </div>
+                
+                <div class="custom-dropdown dash-dropdown" id="dash-activity-dropdown">
+                    <button type="button" class="dropdown-trigger">
+                        <span class="selected-text">{{ dash_activity or request.form.get('dash_activity', 'Sprint') }}</span>
+                        <span class="arrow">▼</span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li data-value="Sprint">Sprint</li>
+                        <li data-value="Endurance">Endurance</li>
+                        <li data-value="Strength">Strength</li>
+                    </ul>
+                </div>
+                <input type="hidden" name="dash_activity" id="dash_activity_input" value="{{ dash_activity or request.form.get('dash_activity', 'Sprint') }}">
+
+                <!-- Session Range Window Toggle -->
+                <div class="range-toggle-group">
+                    <button type="button" class="range-btn {% if dash_range == '5' or not dash_range %}active{% endif %}" data-range="5">5 SESS</button>
+                    <button type="button" class="range-btn {% if dash_range == '10' %}active{% endif %}" data-range="10">10 SESS</button>
+                    <button type="button" class="range-btn {% if dash_range == 'all' %}active{% endif %}" data-range="all">ALL</button>
+                </div>
+                <input type="hidden" name="dash_range" id="dash_range_input" value="{{ dash_range or '5' }}">
+                
+                <button type="submit" class="btn-neon dash-btn">GENERATE ↗</button>
+            </form>
+
+            {% if kpis and chart_url %}
+            <!-- 1. HIGH-IMPACT ATHLETE KPI TILES -->
+            <div class="kpi-grid">
+                <!-- PR Tile -->
+                <div class="kpi-card pr-card">
+                    <div class="kpi-header">
+                        <span class="kpi-tag">PERSONAL RECORD</span>
+                        <span class="kpi-icon">⚡</span>
+                    </div>
+                    <div class="kpi-value text-neon">{{ kpis.pr_value }}</div>
+                    <div class="kpi-label">{{ kpis.pr_label }}</div>
+                    <div class="kpi-subtag">{{ kpis.pr_sub }}</div>
+                </div>
+
+                <!-- Cumulative Volume Tile -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-tag">DISCIPLINE VOLUME</span>
+                        <span class="kpi-icon">📊</span>
+                    </div>
+                    <div class="kpi-value">{{ kpis.volume_value }}</div>
+                    <div class="kpi-label">{{ kpis.volume_label }}</div>
+                    <div class="kpi-subtag">{{ kpis.volume_sub }}</div>
+                </div>
+
+                <!-- Cardio Strain Tile -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-tag">CARDIO STRAIN</span>
+                        <span class="kpi-icon">❤️</span>
+                    </div>
+                    <div class="kpi-value">{{ kpis.avg_hr }}</div>
+                    <div class="kpi-label">AVERAGE HEART RATE</div>
+                    <div class="kpi-subtag zone-badge">{{ kpis.hr_zone }}</div>
+                </div>
+
+                <!-- Workload Stress Tile -->
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-tag">WORKLOAD STRESS</span>
+                        <span class="kpi-icon">🔥</span>
+                    </div>
+                    <div class="kpi-value">{{ kpis.workload_value }}</div>
+                    <div class="kpi-label">{{ kpis.workload_label }}</div>
+                    <div class="kpi-subtag">{{ kpis.workload_sub }}</div>
+                </div>
+            </div>
+
+            <!-- 2. CHART TELEMETRY VIEW -->
+            <div class="chart-header-bar">
+                <span class="chart-title-tag">TRAJECTORY PLOT // {{ dash_name|upper }} ({{ dash_activity|upper }})</span>
+                <span class="chart-window-tag">WINDOW: {{ 'ALL SESSIONS' if dash_range == 'all' else 'LAST ' + dash_range + ' SESSIONS' }}</span>
+            </div>
+
+            <div class="chart-container">
+                <img src="data:image/png;base64,{{ chart_url }}" alt="ATHLETE ANALYTICS CHART">
+            </div>
+
+            <!-- Export Buttons for Reports -->
+            <div class="export-actions-row">
+                <form action="/export/pdf" method="POST" style="flex: 1;">
+                    <input type="hidden" name="dash_name" value="{{ dash_name or request.form.get('dash_name', '') }}">
+                    <input type="hidden" name="dash_activity" value="{{ dash_activity or request.form.get('dash_activity', 'Sprint') }}">
+                    <button type="submit" class="btn-neon export-btn">DOWNLOAD PDF DOSSIER ↗</button>
+                </form>
+
+                <form action="/export/doc" method="POST" style="flex: 1;">
+                    <input type="hidden" name="dash_name" value="{{ dash_name or request.form.get('dash_name', '') }}">
+                    <input type="hidden" name="dash_activity" value="{{ dash_activity or request.form.get('dash_activity', 'Sprint') }}">
+                    <button type="submit" class="btn-neon export-btn">DOWNLOAD DOCX REPORT ↗</button>
+                </form>
+            </div>
+
+            <!-- 3. SESSION HISTORY BREAKDOWN TABLE -->
+            {% if history %}
+            <div class="session-history-section">
+                <div class="history-header">
+                    <div>
+                        <span class="report-eyebrow">OBSIDIAN // AUDIT LOG</span>
+                        <h3 class="history-title">SESSION LOG HISTORY</h3>
+                    </div>
+                    <span class="history-count">{{ history|length }} SESSIONS DISPLAYED</span>
+                </div>
+
+                <div class="history-table-wrapper">
+                    <table class="obsidian-table">
+                        <thead>
+                            <tr>
+                                <th>DATE & TIME</th>
+                                <th>DISCIPLINE</th>
+                                <th>PRIMARY OUTPUT</th>
+                                <th>VOLUME / REPS</th>
+                                <th>CARDIO</th>
+                                <th>RPE</th>
+                                <th>KEY LOAD / 1RM</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in history %}
+                            <tr>
+                                <td class="col-date">{{ row.timestamp }}</td>
+                                <td><span class="badge-discipline">{{ row.activity }}</span></td>
+                                <td class="col-highlight">{{ row.output_main }}</td>
+                                <td class="col-muted">{{ row.output_detail }}</td>
+                                <td class="col-hr">{{ row.hr }}</td>
+                                <td><span class="badge-rpe">{{ row.rpe }}</span></td>
+                                <td class="col-neon">{{ row.metric_extra }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {% elif not chart_url %}
+            <!-- DEFAULT / EMPTY STATE: GLOBAL GYM TELEMETRY & HALL OF RECORDS -->
+            <div class="default-telemetry-view">
+                <!-- Facility KPI Strip -->
+                <div class="global-kpi-grid">
+                    <div class="global-kpi-card">
+                        <span class="g-kpi-label">TOTAL SESSIONS</span>
+                        <span class="g-kpi-val">{{ telemetry.total_sessions }}</span>
+                        <span class="g-kpi-sub">FACILITY LOGS</span>
+                    </div>
+                    <div class="global-kpi-card">
+                        <span class="g-kpi-label">ROSTER ATHLETES</span>
+                        <span class="g-kpi-val">{{ telemetry.athletes_count }}</span>
+                        <span class="g-kpi-sub">REGISTERED</span>
+                    </div>
+                    <div class="global-kpi-card">
+                        <span class="g-kpi-label">DISTANCE LOGGED</span>
+                        <span class="g-kpi-val">{{ telemetry.total_distance }} <small>KM</small></span>
+                        <span class="g-kpi-sub">ENDURANCE SUM</span>
+                    </div>
+                    <div class="global-kpi-card">
+                        <span class="g-kpi-label">VOLUME TONNAGE</span>
+                        <span class="g-kpi-val">{{ telemetry.total_tonnage }} <small>KG</small></span>
+                        <span class="g-kpi-sub">LIFETIME LOAD</span>
+                    </div>
+                </div>
+
+                <!-- Obsidian Hall of Records / PR Wall -->
+                <div class="records-wall">
+                    <div class="records-header">
+                        <div>
+                            <span class="report-eyebrow">OBSIDIAN FACILITY RECORDS</span>
+                            <h3 class="records-title">HALL OF BENCHMARKS & PRs</h3>
+                        </div>
+                        <span class="records-badge">ALL-TIME PEAKS</span>
+                    </div>
+
+                    <div class="records-grid">
+                        {% if telemetry.records.get('sprint') %}
+                        <div class="record-tile">
+                            <div class="record-badge-row">
+                                <span class="rec-icon">⚡</span>
+                                <span class="rec-category">TOP SPRINT SPEED</span>
+                            </div>
+                            <div class="rec-value">{{ telemetry.records.sprint.val }}</div>
+                            <div class="rec-holder">HELD BY: <strong>{{ telemetry.records.sprint.athlete }}</strong></div>
+                        </div>
+                        {% endif %}
+
+                        {% if telemetry.records.get('endurance') %}
+                        <div class="record-tile">
+                            <div class="record-badge-row">
+                                <span class="rec-icon">🏃</span>
+                                <span class="rec-category">MAX RUN DISTANCE</span>
+                            </div>
+                            <div class="rec-value">{{ telemetry.records.endurance.val }}</div>
+                            <div class="rec-holder">HELD BY: <strong>{{ telemetry.records.endurance.athlete }}</strong></div>
+                        </div>
+                        {% endif %}
+
+                        {% if telemetry.records.get('strength') %}
+                        <div class="record-tile">
+                            <div class="record-badge-row">
+                                <span class="rec-icon">🏋️</span>
+                                <span class="rec-category">HEAVIEST LIFT</span>
+                            </div>
+                            <div class="rec-value">{{ telemetry.records.strength.val }}</div>
+                            <div class="rec-holder">{{ telemetry.records.strength.exercise }} // <strong>{{ telemetry.records.strength.athlete }}</strong></div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Recent Gym Activity Stream -->
+                {% if telemetry.recent_logs %}
+                <div class="recent-gym-feed">
+                    <div class="feed-header">
+                        <span class="feed-title">RECENT FACILITY ACTIVITY LOGS</span>
+                        <span class="feed-pulse">● LIVE STREAM</span>
+                    </div>
+                    <div class="feed-list">
+                        {% for item in telemetry.recent_logs %}
+                        <div class="feed-item">
+                            <div class="feed-athlete">
+                                <span class="feed-name">{{ item.athlete }}</span>
+                                <span class="feed-discipline">{{ item.activity }}</span>
+                            </div>
+                            <div class="feed-output">{{ item.metric }}</div>
+                            <div class="feed-meta">
+                                <span class="feed-hr">{{ item.hr }}</span>
+                                <span class="feed-time">{{ item.timestamp }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="empty-prompt">
+                    <p>TAP AN ATHLETE CHIP ABOVE OR SEARCH BY NAME TO REVEAL DEEP BIOMETRICS, TIME-SERIES TRAJECTORIES, AND SESSION AUDITS.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    <!-- Streetwear Footer -->
+    <footer class="footer-banner">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="footer-brand-title-row">
+                    <img src="{{ url_for('static', filename='app logo design.jpg') }}" alt="OBSIDIAN Logo" class="footer-logo-img">
+                    <h2>BUILT FOR<br>THE UNKNOWN.</h2>
+                </div>
+                <p>Technical tracking. Functional design. No limits.</p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-col">
+                    <h4>METRICS</h4>
+                    <a href="#" class="modal-trigger" data-modal="cardio">CARDIO STRAIN</a>
+                    <a href="#" class="modal-trigger" data-modal="speed">SPEED ZONES</a>
+                    <a href="#" class="modal-trigger" data-modal="orm">1RM MAX ESTIMATE</a>
+                </div>
+                <div class="footer-col">
+                    <h4>SYSTEM</h4>
+                    <a href="#" class="modal-trigger" data-modal="docs">DOCUMENTATION</a>
+                    <a href="#" class="modal-trigger" data-modal="privacy">PRIVACY POLICY</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© OBSIDIAN® PERFORMANCE LABS 2026. ALL RIGHTS RESERVED.</p>
+        </div>
+    </footer>
+
+    <!-- Mini Page / Modal Overlay -->
+    <div id="info-modal" class="modal-overlay">
+        <div class="modal-content card">
+            <button id="close-modal" class="close-btn">&times;</button>
+            <h2 id="modal-title" class="section-title">TITLE</h2>
+            <div id="modal-body" class="modal-body-text"></div>
+        </div>
+    </div>
+
+    <!-- CLIENT JAVASCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+// Profile Dropdown Toggle
+            const profileDropdown = document.getElementById('profile-dropdown');
+            const profileTrigger = document.getElementById('profile-trigger');
+            if (profileTrigger && profileDropdown) {
+                profileTrigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    profileDropdown.classList.toggle('open');
+                });
+                document.addEventListener('click', () => {
+                    profileDropdown.classList.remove('open');
+                });
+            }
+            // ==========================================
+            // 1. ONE-TIME GLOBAL SETUPS (DOES NOT RE-BIND)
+            // ==========================================
+
+            // Hero Crossfade Slideshow
+            const slides = document.querySelectorAll('.slideshow-img');
+            let currentSlide = 0;
+            if (slides.length > 0) {
+                setInterval(() => {
+                    slides[currentSlide].classList.remove('active');
+                    currentSlide = (currentSlide + 1) % slides.length;
+                    slides[currentSlide].classList.add('active');
+                }, 5000);
+            }
+
+            // Footer Modals Data & Logic
+            const modalData = {
+                'cardio': {
+                    title: 'CARDIO STRAIN',
+                    content: `
+                        <h3>Heart Rate Zones Explained</h3>
+                        <p>Cardio strain relies on raw heart rate monitoring to calculate physiological load during training. Keeping your BPM in specific ranges triggers different physiological adaptations.</p>
+                        <ul>
+                            <li><strong>Zone 3 (Moderate):</strong> 140 - 159 BPM. Improves baseline aerobic endurance.</li>
+                            <li><strong>Zone 4 (High):</strong> 160 - 179 BPM. Pushes the anaerobic threshold. High lactic acid buildup.</li>
+                            <li><strong>Zone 5 (Max):</strong> 180+ BPM. Maximum kinetic output. Sustainable only for short, explosive intervals.</li>
+                        </ul>
+                    `
+                },
+                'speed': {
+                    title: 'SPEED ZONES',
+                    content: `
+                        <h3>Velocity Thresholds</h3>
+                        <p>Top speed is a direct indicator of fast-twitch muscle fiber recruitment and neurological efficiency.</p>
+                        <p><strong>Standard Pace:</strong> Under 28 km/h. Suitable for endurance or sub-maximal sprinting.</p>
+                        <p><strong>Elite Zone:</strong> Over 28 km/h. Entering top-tier athletic territory. Hitting this metric requires perfect form and high power-to-weight ratio.</p>
+                    `
+                },
+                'orm': {
+                    title: '1RM MAX ESTIMATE',
+                    content: `
+                        <h3>The Epley Formula</h3>
+                        <p>Finding your true One-Rep Max (1RM) can be dangerous. Instead, the tracker calculates a highly accurate estimation based on your sub-maximal volume using the Epley formula:</p>
+                        <p style="font-family: monospace; color: #ccff00; background: #1a1a1a; padding: 10px; margin-top: 10px;">1RM = Weight × (1 + (Reps / 30))</p>
+                        <p>This allows you to track raw strength gains safely week over week without pushing to structural failure.</p>
+                    `
+                },
+                'docs': {
+                    title: 'DOCUMENTATION',
+                    content: `
+                        <h3>Using the Tracker Effectively</h3>
+                        <p><strong>1. Log Your Session:</strong> Enter your baseline vitals and select your activity type from the dropdown. The form dynamically adapts to ask only for the metrics you need.</p>
+                        <p><strong>2. Check the Live Readout:</strong> After saving, check the preformatted summary box for immediate feedback on the session's overall Load Score and Zones.</p>
+                        <p><strong>3. Generate Dashboards:</strong> Enter your exact athlete name and activity in the Analytics panel. The system queries your local CSV database and plots your last 5 sessions into Matplotlib visualization graphs, providing a clear visual representation of your progress trajectory.</p>
+                    `
+                },
+                'privacy': {
+                    title: 'PRIVACY POLICY',
+                    content: `
+                        <h3>Your Data is Local.</h3>
+                        <p>This application does not transmit your biometric metrics, names, or performance data to any external servers or third-party agencies.</p>
+                        <p>All information is logged locally inside the <code>Athlete_Data.csv</code> file stored in the root directory of your own machine. You own the data. You control the machine. To clear your data, simply delete the CSV file.</p>
+                    `
+                }
+            };
+
+            const modalOverlay = document.getElementById('info-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const closeModalBtn = document.getElementById('close-modal');
+            const modalTriggers = document.querySelectorAll('.modal-trigger');
+
+            modalTriggers.forEach(trigger => {
+                trigger.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const topic = trigger.getAttribute('data-modal');
+                    if (modalData[topic]) {
+                        modalTitle.textContent = modalData[topic].title;
+                        modalBody.innerHTML = modalData[topic].content;
+                        modalOverlay.style.display = 'flex';
+                        setTimeout(() => modalOverlay.classList.add('active'), 10);
+                    }
+                });
+            });
+
+            const closeModal = () => {
+                modalOverlay.classList.remove('active');
+                setTimeout(() => modalOverlay.style.display = 'none', 300); 
+            };
+
+            closeModalBtn.addEventListener('click', closeModal);
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) closeModal();
+            });
+
+
+            // Background Music Player & Playlist Engine
+            const bgAudio = document.getElementById('bg-audio');
+            const audioToggleBtn = document.getElementById('audio-toggle-btn');
+            const audioNextBtn = document.getElementById('audio-next-btn');
+            const musicIcon = document.getElementById('music-icon');
+            const musicLabel = document.getElementById('music-label');
+            const soundBars = document.getElementById('sound-bars');
+            const trackIndicator = document.getElementById('track-indicator');
+
+            const playlist = {{ audio_tracks|tojson }};
+            let currentTrackIndex = 0;
+
+            function loadTrack(index) {
+                if (!playlist || playlist.length === 0) return;
+                currentTrackIndex = (index + playlist.length) % playlist.length;
+                const track = playlist[currentTrackIndex];
+                if (bgAudio) {
+                    bgAudio.src = track.url;
+                    bgAudio.volume = 0.35; 
+                }
+                if (trackIndicator) {
+                    let cleanName = track.name.replace(/\.[^/.]+$/, "").toUpperCase();
+                    if (cleanName.length > 14) cleanName = cleanName.substring(0, 12) + '..';
+                    trackIndicator.textContent = cleanName;
+                    trackIndicator.title = track.name;
+                }
+            }
+
+            function updateAudioUI(isPlaying) {
+                if (isPlaying) {
+                    if (audioToggleBtn) audioToggleBtn.classList.add('playing');
+                    if (soundBars) soundBars.classList.add('active');
+                    if (musicIcon) musicIcon.textContent = '⏸';
+                    if (musicLabel) musicLabel.textContent = 'MUSIC: ON';
+                } else {
+                    if (audioToggleBtn) audioToggleBtn.classList.remove('playing');
+                    if (soundBars) soundBars.classList.remove('active');
+                    if (musicIcon) musicIcon.textContent = '▶';
+                    if (musicLabel) musicLabel.textContent = 'MUSIC: OFF';
+                }
+            }
+
+            if (bgAudio && playlist && playlist.length > 0) {
+                const savedIndex = parseInt(sessionStorage.getItem('obsidian_track_idx') || '0', 10);
+                loadTrack(isNaN(savedIndex) ? 0 : savedIndex);
+
+                if (audioToggleBtn) {
+                    audioToggleBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        if (bgAudio.paused) {
+                            bgAudio.play().then(() => {
+                                updateAudioUI(true);
+                                sessionStorage.setItem('obsidian_music_state', 'playing');
+                            }).catch(err => { console.log(err); });
+                        } else {
+                            bgAudio.pause();
+                            updateAudioUI(false);
+                            sessionStorage.setItem('obsidian_music_state', 'paused');
+                        }
+                    });
+                }
+
+                if (audioNextBtn) {
+                    audioNextBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const wasPlaying = !bgAudio.paused;
+                        loadTrack(currentTrackIndex + 1);
+                        sessionStorage.setItem('obsidian_track_idx', currentTrackIndex);
+                        if (wasPlaying) {
+                            bgAudio.play().then(() => updateAudioUI(true)).catch(err => console.log(err));
+                        }
+                    });
+                }
+
+                bgAudio.addEventListener('ended', function() {
+                    loadTrack(currentTrackIndex + 1);
+                    sessionStorage.setItem('obsidian_track_idx', currentTrackIndex);
+                    bgAudio.play().then(() => updateAudioUI(true)).catch(err => console.log(err));
+                });
+
+                const savedState = sessionStorage.getItem('obsidian_music_state');
+                if (savedState === 'playing') {
+                    bgAudio.play().then(() => {
+                        updateAudioUI(true);
+                    }).catch(() => { updateAudioUI(false); });
+                }
+            }
+
+            // ==========================================
+            // 2. INITIALIZE ALL DYNAMIC ELEMENTS & AJAX
+            // ==========================================
+            rebindDynamicElements();
+        });
+
+
+        // ==============================================================
+        // DYNAMIC DOM BINDING (CALLED ON LOAD & AFTER EVERY AJAX FETCH)
+        // ==============================================================
+        function rebindDynamicElements() {
+
+            // Ripple Button Effect
+            document.querySelectorAll('.btn-neon').forEach(button => {
+                button.addEventListener('click', function (e) {
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+                    
+                    const ripple = document.createElement('span');
+                    ripple.style.width = `${size}px`;
+                    ripple.style.height = `${size}px`;
+                    ripple.style.left = `${x}px`;
+                    ripple.style.top = `${y}px`;
+                    ripple.classList.add('ripple');
+                    
+                    this.appendChild(ripple);
+                    setTimeout(() => { ripple.remove(); }, 600);
+                });
+            });
+
+            // Custom Animated Dropdowns
+            const dropdowns = document.querySelectorAll('.custom-dropdown');
+            dropdowns.forEach(dropdown => {
+                const trigger = dropdown.querySelector('.dropdown-trigger');
+                const items = dropdown.querySelectorAll('.dropdown-menu li');
+                const selectedText = dropdown.querySelector('.selected-text');
+                const hiddenInput = dropdown.nextElementSibling && dropdown.nextElementSibling.tagName === 'INPUT' 
+                    ? dropdown.nextElementSibling 
+                    : dropdown.parentNode.querySelector('input[type="hidden"]');
+
+                trigger.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropdowns.forEach(d => { if (d !== dropdown) d.classList.remove('open'); });
+                    dropdown.classList.toggle('open');
+                });
+
+                items.forEach(item => {
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const value = item.getAttribute('data-value');
+
+                        if (selectedText) selectedText.textContent = value;
+                        if (hiddenInput) hiddenInput.value = value;
+
+                        dropdown.classList.remove('open');
+                        if (hiddenInput && hiddenInput.id === 'activity') {
+                            toggleFields();
+                        }
+                    });
+                });
+            });
+
+            document.addEventListener('click', () => {
+                dropdowns.forEach(dropdown => dropdown.classList.remove('open'));
+            });
+
+            // Clear Form Errors Instantly On Typing
+            document.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', function() {
+                    if (this.classList.contains('input-error')) {
+                        this.classList.remove('input-error');
+                        const errorMsg = this.parentNode.querySelector('.error-msg');
+                        if (errorMsg) {
+                            errorMsg.style.display = 'none';
+                        }
+                    }
+                });
+            });
+
+            // Athlete Roster Chips Quick-Select
+           // Athlete Roster Chips Quick-Select
+            const dashNameInput = document.getElementById('dash_name_input');
+            const dashForm = document.getElementById('dash-form');
+            
+            document.querySelectorAll('.athlete-chip').forEach(chip => {
+                chip.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Check if this specific chip is already active before we change anything
+                    const isActive = this.classList.contains('active');
+                    const name = this.getAttribute('data-name');
+                    
+                    // Clear the active class from ALL chips first
+                    document.querySelectorAll('.athlete-chip').forEach(c => c.classList.remove('active'));
+                    
+                    if (isActive) {
+                        // If it was already active, it is now deselected. Clear the input field.
+                        if (dashNameInput) dashNameInput.value = '';
+                    } else {
+                        // If it was not active, make it active and set the input field.
+                        this.classList.add('active');
+                        if (dashNameInput) dashNameInput.value = name;
+                    }
+
+                    if (dashForm) {
+                        // Submit the form via AJAX to update the dashboard (either showing the athlete or reverting to global view)
+                        dashForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                    }
+                });
+            });
+
+            // Session Window Range Toggles
+            const dashRangeInput = document.getElementById('dash_range_input');
+            document.querySelectorAll('.range-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const rangeVal = this.getAttribute('data-range');
+                    if (dashRangeInput) {
+                        dashRangeInput.value = rangeVal;
+                    }
+                    document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    if (dashNameInput && dashNameInput.value.trim() !== '' && dashForm) {
+                        dashForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                    }
+                });
+            });
+
+            // Sync visibility and Rebind AJAX form submissions
+            toggleFields();
+            bindAjaxForms();
+        }
+
+        // ==========================================
+        // 3. AJAX SEAMLESS FORM SUBMISSION
+        // ==========================================
+        function bindAjaxForms() {
+            // Only intercept the Log and Dash forms. PDF/DOCX exports remain native submissions.
+            const forms = document.querySelectorAll('form#log-form, form#dash-form');
+            
+            forms.forEach(form => {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const loader = document.getElementById('loading-overlay');
+                    loader.classList.add('active'); // Fire up the 3D Spinner
+
+                    try {
+                        const formData = new FormData(form);
+                        const response = await fetch(form.action, {
+                            method: form.method,
+                            body: formData
+                        });
+                        
+                        const htmlText = await response.text();
+                        
+                        // Parse the raw HTML returned from Python
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(htmlText, 'text/html');
+                        
+                        // Replace the old container with the newly generated container
+                        const currentContainer = document.querySelector('.container');
+                        const newContainer = doc.querySelector('.container');
+                        
+                        if (currentContainer && newContainer) {
+                            currentContainer.innerHTML = newContainer.innerHTML;
+                        }
+                        
+                        // Because the DOM is fresh, rebind all click events
+                        rebindDynamicElements();
+                        
+                    } catch (err) {
+                        console.error("AJAX Error: ", err);
+                    } finally {
+                        // Small artificial delay so the user sees the cool loader
+                        setTimeout(() => {
+                            loader.classList.remove('active');
+                        }, 500); 
+                    }
+                });
+            });
+        }
+
+        // ==========================================
+        // 4. DYNAMIC FIELD VISIBILITY
+        // ==========================================
+        function toggleFields() {
+            const activityInput = document.getElementById("activity");
+            if (!activityInput) return;
+            const activity = activityInput.value;
+
+            const sprintBlock = document.getElementById("sprint-fields");
+            const enduranceBlock = document.getElementById("endurance-fields");
+            const strengthBlock = document.getElementById("strength-fields");
+
+            if (sprintBlock) sprintBlock.style.display = activity === "Sprint" ? "block" : "none";
+            if (enduranceBlock) enduranceBlock.style.display = activity === "Endurance" ? "block" : "none";
+            if (strengthBlock) strengthBlock.style.display = activity === "Strength" ? "block" : "none";
+
+            const logForm = document.getElementById("log-form");
+            if (logForm) {
+                const durSprint = logForm.querySelector('input[name="duration"]');
+                const durEnd = logForm.querySelector('input[name="duration_endurance"]');
+                if (activity === "Endurance" && durEnd) {
+                    durEnd.name = "duration";
+                    if (durSprint) durSprint.name = "duration_disabled";
+                } else if (activity === "Sprint" && durSprint) {
+                    durSprint.name = "duration";
+                    if (durEnd) durEnd.name = "duration_endurance";
+                }
+            }
+        }
+    </script>
+</body>
+</html>
